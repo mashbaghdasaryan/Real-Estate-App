@@ -1,78 +1,36 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { motion } from "motion/react";
-import { validations, bannedWords } from "./validations";
+import { validateFields } from "./helper";
 
 const Contact = () => {
-  const [result, setResult] = useState("");
-  const [formData, setFormData] = useState({
+  const formRefs = useRef({
     name: "",
     email: "",
     message: "",
   });
+
+  const [result, setResult] = useState("");
   const [errors, setErrors] = useState({});
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    setFormData((prev) => ({ ...prev, [name]: value }));
-
-    let fieldError = "";
-
-    validations[name].forEach((rule) => {
-      if (!rule.pattern.test(value.trim()) && !fieldError) {
-        fieldError = rule.message;
-      }
-    });
-
-    if (
-      name === "message" &&
-      !fieldError &&
-      bannedWords.some((word) => value.toLowerCase().includes(word))
-    ) {
-      fieldError = "Message contains inappropriate words.";
-    }
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    const { errors: validationErrors } = validateFields(formRefs.current);
 
     setErrors((prevErrors) => ({
       ...prevErrors,
-      [name]: fieldError,
+      [name]: validationErrors[name],
     }));
-  };
-
-  const validate = () => {
-    const newErrors = {};
-
-    for (const field in validations) {
-      const value = formData[field].trim();
-      let message = "";
-
-      validations[field].forEach((rule) => {
-        if (!rule.pattern.test(value) && !message) {
-          message = rule.message;
-        }
-      });
-
-      if (message) {
-        newErrors[field] = message;
-      }
-    }
-
-    const messageValue = formData.message.toLowerCase();
-    if (
-      bannedWords.some((word) => messageValue.includes(word)) &&
-      !newErrors.message
-    ) {
-      newErrors.message = "Message contains inappropriate words.";
-    }
-
-    return newErrors;
   };
 
   const onSubmit = async (event) => {
     event.preventDefault();
-    const validationErrors = validate();
 
-    if (Object.keys(validationErrors).length > 0) {
+    const { isValid, errors: validationErrors } = validateFields(
+      formRefs.current
+    );
+
+    if (!isValid) {
       setErrors(validationErrors);
       toast.error("Please fix the errors in the form.");
       return;
@@ -94,10 +52,8 @@ const Contact = () => {
     if (data.success) {
       setResult("");
       toast.success("Form Submitted Successfully");
-      setFormData({ name: "", email: "", message: "" });
       event.target.reset();
     } else {
-      console.log("Error", data);
       toast.error(data.message);
       setResult("");
     }
@@ -124,6 +80,8 @@ const Contact = () => {
 
       <form
         onSubmit={onSubmit}
+        onChange={(e) => (formRefs.current[e.target.name] = e.target.value)}
+        onBlur={handleBlur}
         className="max-w-2xl mx-auto text-gray-600 pt-8"
       >
         <div className="flex flex-wrap">
@@ -134,8 +92,6 @@ const Contact = () => {
               className="w-full border border-gray-300 rounded py-3 px-4 mt-2"
               type="text"
               placeholder="Your Name"
-              value={formData.name}
-              onChange={handleChange}
               autoComplete="off"
             />
             {errors.name && (
@@ -150,8 +106,6 @@ const Contact = () => {
               className="w-full border border-gray-300 rounded py-3 px-4 mt-2"
               type="text"
               placeholder="Your Email"
-              value={formData.email}
-              onChange={handleChange}
               autoComplete="off"
             />
             {errors.email && (
@@ -162,11 +116,9 @@ const Contact = () => {
           <div className="w-full my-6 text-left">
             Message
             <textarea
-              className="w-full border border-gray-300 rounded py-3 px-4 mt-2 h-48 resize-none"
               name="message"
+              className="w-full border border-gray-300 rounded py-3 px-4 mt-2 h-48 resize-none"
               placeholder="Message"
-              value={formData.message}
-              onChange={handleChange}
             ></textarea>
             {errors.message && (
               <p className="text-red-500 text-sm mt-1">{errors.message}</p>

@@ -1,8 +1,9 @@
 export const pattern = {
-  required: /^(?!\s*$).+/,
+  required: /\S+/,
   email: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
-  name: /^[a-zA-Z\s]+$/,
+  name: /^[\p{L}\s]+$/u,
   minLength: (length) => new RegExp(`^.{${length},}$`),
+  maxLength: (length) => new RegExp(`^.{0,${length}}$`),
 };
 
 export const validations = {
@@ -27,7 +28,9 @@ export const validations = {
       message: "Message must be at least 10 characters",
       pattern: pattern.minLength(10),
     },
+    {
+      message: "Message must be under 300 characters",
+      pattern: pattern.maxLength(300),
+    },
   ],
 };
-
-export const bannedWords = ["buy now", "free money", "spam", "scam"];
